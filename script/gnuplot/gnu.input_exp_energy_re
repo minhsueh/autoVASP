@@ -1,0 +1,14 @@
+#! /usr/bin/gnuplot
+set terminal png truecolor giant size 800,600
+set output 'plot.jpg'
+set grid
+set xlabel 'Energy (eV)'
+set ylabel 'DF_Re.'
+set title  
+set key outside
+set size ratio 1
+set xrange [0 : 5]
+set yrange [-500 : 10]
+#set key 0.2, 100
+#set label "Yield point" at 0.1 20
+
