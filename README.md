@@ -19,4 +19,5 @@ Usage: <br/>
 The route of post-analysis script, POTCAR, and work record should be modified by user.
 
 
+Some results using autoVASP
 <img src="https://github.com/minhsueh/autoVASP/blob/main/results/aumo_im_nm.jpg" width="400" height="250" />
