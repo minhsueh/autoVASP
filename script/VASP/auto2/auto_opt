@@ -1,0 +1,83 @@
+
+#!/bin/sh     
+#
+
+me=`whoami`
+
+
+
+cd ..
+cd opt
+
+atom_sort_num=$(cat ../system_imfo|awk '{print $1}')
+if [ $atom_sort_num -eq 1 ]; then
+	first_atom=$(cat ../system_imfo|awk '{print $2}')
+	ratio=$(cat ../system_imfo|awk '{print $3}')
+	lat_con=$(cat ../system_imfo|awk '{print $4}')
+	structure=$(cat ../system_imfo|awk '{print $5}')
+	atom_num=$(cat ../system_imfo|awk '{print $6}')
+	morphology=$(cat ../system_imfo|awk '{print $7}')
+	spin=$(cat ../system_imfo|awk '{print $8}')
+	mod_x=$(cat ../system_imfo|awk '{print $9}')
+	mod_y=$(cat ../system_imfo|awk '{print $10}')
+	mod_z=$(cat ../system_imfo|awk '{print $11}')
+	alloy_name=$first_atom
+
+elif [ $atom_sort_num -eq 2 ];then
+	first_atom=$(cat ../system_imfo|awk '{print $2}')
+	second_atom=$(cat ../system_imfo|awk '{print $3}')
+	ratio=$(cat ../system_imfo|awk '{print $4}')
+	lat_con=$(cat ../system_imfo|awk '{print $5}')
+	structure=$(cat ../system_imfo|awk '{print $6}')
+	atom_num=$(cat ../system_imfo|awk '{print $7}')
+	morphology=$(cat ../system_imfo|awk '{print $8}')
+	spin=$(cat ../system_imfo|awk '{print $9}')
+	mod_x=$(cat ../system_imfo|awk '{print $10}')
+	mod_y=$(cat ../system_imfo|awk '{print $11}')
+	mod_z=$(cat ../system_imfo|awk '{print $12}')
+	alloy_name=$first_atom$second_atom
+fi
+
+####INCAR KPOINT
+if [ $spin -eq 1 ]; then
+	cp /home/$me/myfold/vasp/opt/INCAR .
+elif [ $spin -eq 2 ]; then
+	cp /home/$me/myfold/vasp/opt/INCAR_spin2 INCAR
+fi
+#cp /home/$me/myfold/vasp/opt/KPOINTS_bulk KPOINTS
+cp /home/$me/myfold/vasp/opt/KPOINTS_modify KPOINTS
+#cat ../str_precal/POSCAR |sed -n "3,5p" > mod_matrix
+dos2unix ../str_precal/POSCAR
+mod_x=$(cat ../str_precal/POSCAR |sed -n "3,3p"|awk '{print $1}'); echo $mod_x
+mod_y=$(cat ../str_precal/POSCAR |sed -n "4,4p"|awk '{print $2}'); echo $mod_y
+mod_z=$(cat ../str_precal/POSCAR |sed -n "5,5p"|awk '{print $3}'); echo $mod_z
+K_x=$((60/$mod_x))
+K_y=$((60/$mod_y))
+K_z=$((60/$mod_z))
+sed -i "3 a $K_x $K_y $K_z" KPOINTS
+
+
+
+###cp COUNTCAR POTCAR CHGCAR
+cp ../str/CONTCAR POSCAR
+cp ../str/POTCAR .
+cp ../str/CHGCAR .
+
+
+##change NBANDS in INCAR
+NBAND_str=$(grep 'NBANDS=' ../str/OUTCAR | awk '{print $15}')
+echo $NBAND_str
+NBAND_opt=$(($NBAND_str * 2))
+echo $NBAND_opt
+find INCAR -type f -exec sed -i "s/192/${NBAND_opt}/g" {} \;
+
+##############
+####submit
+source /home/$me/script/VASP/auto2/queue_auto_opt
+##############
+#
+chmod +x ${alloy_name}_${morphology}.sh
+#
+qsub < ${alloy_name}_${morphology}.sh
+
+

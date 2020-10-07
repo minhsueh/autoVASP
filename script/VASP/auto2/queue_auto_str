@@ -1,0 +1,65 @@
+
+#!/bin/sh     
+#
+
+#JOB=$1
+HERE=`pwd`
+USER=`whoami`
+JOBID=$$
+
+
+
+cat << END_OF_CAT > ${alloy_name}_${morphology}.sh
+#!/bin/bash
+#PBS -l select=4:ncpus=8:mpiprocs=8
+#PBS -N ${alloy_name}${ratio}_${morphology}_str
+#PBS -q cf160
+#PBS -P MST107103
+#PBS -j oe
+
+cd \$PBS_O_WORKDIR
+
+module load intel/2018_u1
+
+export I_MPI_HYDRA_PMI_CONNECT=alltoall
+export I_MPI_HYDRA_BRANCH_COUNT=-1
+
+#mpiexec.hydra -PSM2 ./cpi.exe
+
+
+
+mpirun /home/j11cmh00/bin/vasp/vasp
+
+
+wait
+while [ ! -f OUTCAR ]
+do
+	sleep 2
+done
+
+
+#while grep -q "Voluntary context switches" OUTCAR 
+#do
+#	sleep 2
+#done
+echo "========"
+if grep -q "Voluntary context switches" OUTCAR ; then
+	echo "auto_str_pre started at \`date\`"
+	echo "===============================" >> /work1/j11cmh00/work_record_done
+	echo "${alloy_name}_${ratio}_${morphology}_str ---------- \`date\`" >> /work1/j11cmh00/work_record_done
+	echo "${PWD}" >> /work1/j11cmh00/work_record_done
+	echo "===============================" >> /work1/j11cmh00/work_submit_record
+	echo "${alloy_name}_${ratio}_${morphology}_pre ---------- \`date\`" >> /work1/j11cmh00/work_submit_record
+	echo "${PWD}" >> /work1/j11cmh00/work_submit_record
+	source /home/j11cmh00/script/VASP/auto2/auto_str_pre
+	
+else
+	echo "auto_str failed... PLEASE CHECK!"
+	echo "===============================" >> /work1/j11cmh00/work_record_error
+	echo "${alloy_name}_${ratio}_${morphology}_str ---------- \`date\`" >> /work1/j11cmh00/work_record_error
+	echo "${PWD}" >> /work1/j11cmh00/work_record_error
+fi
+
+
+
+END_OF_CAT

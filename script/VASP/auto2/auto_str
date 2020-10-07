@@ -1,0 +1,204 @@
+
+#!/bin/sh     
+#
+
+me=`whoami`
+####parameter: cat by command
+# echo "==================================="
+# echo "This is for simple bulk system only!!"
+# echo "==================================="
+# echo "first composition of alloy?"; read first_atom
+# echo "second composition of alloy?"; read second_atom
+# echo "what is the lattice constant?"; read lat_con
+# echo "what structure is the bulk? (fcc, bcc, hcp)"; read structure
+# echo "which morphology do u want?"
+# ls /home/j11cmh00/myfold/vasp/str/morphology
+# read morphology
+
+
+####parameter: cat by list
+####pre_check
+#cd /work1/$me/bulk/auto_run
+echo "========================================================================"
+echo "Please remember the work record!!!!Is it ok (1) or not (2)?"; read ok_not
+if [ $ok_not -ne 1 ]; then
+	exit
+fi
+echo "========================================================================"
+pwd
+echo "==="
+cat list
+echo "========================================================================"
+echo "Is is the route and list u want? ok(1) or exit(2)"; read wil
+if [ $wil -ne 1 ]; then
+	exit
+fi
+
+
+
+
+####starting
+#cd /work1/$me/bulk/auto_run
+cat list| while read i
+do 
+	atom_sort_num=$(echo $i|awk '{print $1}')
+	if [ $atom_sort_num -eq 1 ]; then
+		first_atom=$(echo $i|awk '{print $2}')
+		ratio=$(echo $i|awk '{print $3}')
+		lat_con=$(echo $i|awk '{print $4}')
+		structure=$(echo $i|awk '{print $5}')
+		atom_num=$(echo $i|awk '{print $6}')
+		morphology=$(echo $i|awk '{print $7}')
+		spin=$(echo $i|awk '{print $8}')
+		mod_x=$(echo $i|awk '{print $9}')
+		mod_y=$(echo $i|awk '{print $10}')
+		mod_z=$(echo $i|awk '{print $11}')
+		if [ $mod_x -gt 6 ] || [ $mod_y -gt 6 ] || [ $mod_z -gt 6 ]; then
+			echo "kpoint of opt process is 60. PLEASE REMEMBER!!!! If ok, print 1.";read check
+			if [ $check -ne 1 ]; then
+				exit
+			fi
+		fi
+		echo "==============================================="
+		echo "system: ${atom_sort_num}-system; ${first_atom}; ratio: ${ratio}; morphology= ${morphology}"
+		alloy_name=$first_atom
+	elif [ $atom_sort_num -eq 2 ];then
+		first_atom=$(echo $i|awk '{print $2}')
+		second_atom=$(echo $i|awk '{print $3}')
+		ratio=$(echo $i|awk '{print $4}')
+		lat_con=$(echo $i|awk '{print $5}')
+		structure=$(echo $i|awk '{print $6}')
+		atom_num=$(echo $i|awk '{print $7}')
+		morphology=$(echo $i|awk '{print $8}')
+		spin=$(echo $i|awk '{print $9}')
+		mod_x=$(echo $i|awk '{print $10}')
+		mod_y=$(echo $i|awk '{print $11}')
+		mod_z=$(echo $i|awk '{print $12}')
+		if [ $mod_x -gt 6 ] || [ $mod_y -gt 6 ] || [ $mod_z -gt 6 ]; then
+			echo "kpoint of opt process is 60. PLEASE REMEMBER!!!! If ok, print 1.";read check
+			if [ $check -ne 1 ]; then
+				exit
+			fi
+		fi
+		echo "==============================================="
+		echo "system: ${atom_sort_num}-system; ${first_atom}${second_atom}; ratio: ${ratio}; morphology= ${morphology}"
+		alloy_name=$first_atom$second_atom
+	fi
+
+	if [ -d "$alloy_name" ]; then
+		echo "$alloy_name is already existed!!"
+		cd $alloy_name
+	else
+		mkdir $alloy_name
+		cd $alloy_name
+	fi
+
+	if [ -d "$ratio" ]; then
+		echo "$ratio is already existed!!"
+		cd $ratio
+	else
+		mkdir $ratio
+		cd $ratio
+	fi
+	
+	if [ -d "$structure" ]; then
+		echo "$structure is already existed!!"
+		cd $structure
+	else
+		mkdir $structure
+		cd $structure
+	fi
+
+	if [ -d "$atom_num" ]; then
+		echo "$atom_num is already existed!!"
+		cd $atom_num
+	else
+		mkdir $atom_num
+		cd $atom_num
+	fi
+	
+
+	if [ -d "$morphology" ]; then
+		echo "$morphology is already existed!!"
+		cd $morphology
+	else
+		mkdir $morphology
+		cd $morphology
+		mkdir str opt
+	fi
+
+	echo "$i" >>system_imfo
+	
+	cd str
+	########potcar make and copy
+	if [ $atom_sort_num -eq 1 ]; then
+		cp /home/$me/myfold/vasp/potcar/potpaw_PBE/${first_atom}/POTCAR .
+	elif [ $atom_sort_num -eq 2 ]; then
+		if [ -f "/home/$me/myfold/vasp/potcar/potpaw_PBE/alloy/POTCAR_${alloy_name}" ]; then
+			cp /home/$me/myfold/vasp/potcar/potpaw_PBE/alloy/POTCAR_${alloy_name} POTCAR
+		else
+			cat /home/$me/myfold/vasp/potcar/potpaw_PBE/${first_atom}/POTCAR /home/$me/myfold/vasp/potcar/potpaw_PBE/${second_atom}/POTCAR >> /home/$me/myfold/vasp/potcar/potpaw_PBE/alloy/POTCAR_${alloy_name}
+			cp /home/$me/myfold/vasp/potcar/potpaw_PBE/alloy/POTCAR_${alloy_name} POTCAR
+		fi 
+	fi
+	#######kpoint
+	cp /home/$me/myfold/vasp/str/KPOINTS .
+	
+	#echo $spin
+	if [ $spin -eq 1 ]; then
+		cp /home/$me/myfold/vasp/str/INCAR .
+	elif [ $spin -eq 2 ]; then
+		cp /home/$me/myfold/vasp/str/INCAR_spin2 INCAR
+	fi
+
+	#####making poscar
+	if [ $atom_sort_num -eq 1 ]; then
+		echo "$alloy_name" >> POSCAR
+		echo "$lat_con" >> POSCAR
+		cat /home/$me/myfold/vasp/str/structure_list2/atom_sort_num1/$structure >> POSCAR
+		echo "$first_atom $second_atom" >> POSCAR
+		cat /home/$me/myfold/vasp/str/morphology_list2/$structure/$atom_num/$ratio/$morphology >> POSCAR
+
+	elif [ $atom_sort_num -eq 2 ]; then	
+		echo "$alloy_name" >> POSCAR
+		echo "$lat_con" >> POSCAR
+		echo "${mod_x} 0 0" >>POSCAR
+		echo "0 ${mod_y} 0" >>POSCAR
+		echo "0 0 ${mod_z}" >>POSCAR
+		echo "$first_atom $second_atom" >> POSCAR
+		cat /home/$me/myfold/vasp/str/morphology_list2/$structure/$atom_num/$ratio/$morphology >> POSCAR
+fi
+
+	####submit
+	source /home/$me/script/VASP/auto2/queue_auto_str
+	##############
+	#
+	chmod +x ${alloy_name}_${morphology}.sh
+	#
+	echo "===============================" >> /work1/j11cmh00/work_submit_record
+	echo "${alloy_name}_${ratio}_${morphology}_str ---------- `date`" >> /work1/j11cmh00/work_submit_record
+	echo "${PWD}" >> /work1/j11cmh00/work_submit_record
+	
+	qsub < ${alloy_name}_${morphology}.sh
+
+
+
+
+
+
+	
+
+
+	cd ../../../../../../
+done
+
+
+
+
+ 
+
+
+
+
+
+

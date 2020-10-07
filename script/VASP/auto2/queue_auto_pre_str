@@ -1,0 +1,93 @@
+
+#!/bin/sh     
+#
+
+#JOB=$1
+HERE=`pwd`
+USER=`whoami`
+JOBID=$$
+
+
+atom_sort_num=$(cat ../system_imfo|awk '{print $1}')
+if [ $atom_sort_num -eq 1 ]; then
+	first_atom=$(cat ../system_imfo|awk '{print $2}')
+	ratio=$(cat ../system_imfo|awk '{print $3}')
+	lat_con=$(cat ../system_imfo|awk '{print $4}')
+	structure=$(cat ../system_imfo|awk '{print $5}')
+	atom_num=$(cat ../system_imfo|awk '{print $6}')
+	morphology=$(cat ../system_imfo|awk '{print $7}')
+	spin=$(cat ../system_imfo|awk '{print $8}')
+	mod_x=$(cat ../system_imfo|awk '{print $9}')
+	mod_y=$(cat ../system_imfo|awk '{print $10}')
+	mod_z=$(cat ../system_imfo|awk '{print $11}')
+	alloy_name=$first_atom
+
+elif [ $atom_sort_num -eq 2 ];then
+	first_atom=$(cat ../system_imfo|awk '{print $2}')
+	second_atom=$(cat ../system_imfo|awk '{print $3}')
+	ratio=$(cat ../system_imfo|awk '{print $4}')
+	lat_con=$(cat ../system_imfo|awk '{print $5}')
+	structure=$(cat ../system_imfo|awk '{print $6}')
+	atom_num=$(cat ../system_imfo|awk '{print $7}')
+	morphology=$(cat ../system_imfo|awk '{print $8}')
+	spin=$(cat ../system_imfo|awk '{print $9}')
+	mod_x=$(cat ../system_imfo|awk '{print $10}')
+	mod_y=$(cat ../system_imfo|awk '{print $11}')
+	mod_z=$(cat ../system_imfo|awk '{print $12}')
+	alloy_name=$first_atom$second_atom
+fi
+
+
+system=${alloy_name}_${ratio}_${structure}_${morphology}
+
+
+cat << END_OF_CAT > ${alloy_name}_${morphology}.sh
+#!/bin/bash
+#PBS -l select=4:ncpus=8:mpiprocs=8
+#PBS -N ${alloy_name}${ratio}_${morphology}_pre
+#PBS -q cf160
+#PBS -P MST107103
+#PBS -j oe
+
+cd \$PBS_O_WORKDIR
+
+module load intel/2018_u1
+
+export I_MPI_HYDRA_PMI_CONNECT=alltoall
+export I_MPI_HYDRA_BRANCH_COUNT=-1
+
+#mpiexec.hydra -PSM2 ./cpi.exe
+
+
+
+mpirun /home/j11cmh00/bin/vasp/vasp
+wait
+
+while [ ! -f OUTCAR ]
+do
+	sleep 2
+done
+
+echo "auto_str completed at \`date\`"
+
+if grep -q "Voluntary context switches" OUTCAR ; then
+	echo "auto_str_pre started at \`date\`"
+	echo "===============================" >> /work1/j11cmh00/work_record_done
+	echo "${alloy_name}_${ratio}_${morphology}_pre ---------- \`date\`" >> /work1/j11cmh00/work_record_done
+	echo "${PWD}" >> /work1/j11cmh00/work_record_done
+	echo "===============================" >> /work1/j11cmh00/work_submit_record
+	echo "${alloy_name}_${ratio}_${morphology}_opt ---------- \`date\`" >> /work1/j11cmh00/work_submit_record
+	echo "${PWD}" >> /work1/j11cmh00/work_submit_record
+	source /home/j11cmh00/script/VASP/auto2/auto_opt
+	
+
+else
+	echo "auto_str failed... PLEASE CHECK!"
+	echo "===============================" >> /work1/j11cmh00/work_record_error
+	echo "${alloy_name}_${ratio}_${morphology}_pre ---------- \`date\`" >> /work1/j11cmh00/work_record_error
+	echo "${PWD}" >> /work1/j11cmh00/work_record_error
+fi
+
+
+END_OF_CAT
+
