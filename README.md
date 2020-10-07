@@ -14,5 +14,7 @@ However, most of the calculation is similar except some little modification such
 For systemically and consistently input parameters in VASP, these scripts were built for routine calculation for structure relaxation, optical properties calculation, <br/>
 and post-processing analysis.<br/>
 Also, these script meets PBS workload system requirements. (usually, one job is allocated in 8 CPU and 4 Nodes for time and memory requirement.)<br/>
-
+--------------------------------------------------------------------------------------------<br/>
+Usage: <br/>
+The route of post-analysis script, POTCAR, and work record should be modified by user.
 
