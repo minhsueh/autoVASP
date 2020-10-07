@@ -1,0 +1,133 @@
+#echo "the value of life time Coe.?"; read life_time_coe
+life_time_coe=0.1
+##################grap Im. and Re. part of dielectric from OUTCAR##########################
+#echo | cat OUTCAR|grep -n "  frequency dependent " >>result
+x=$(cat OUTCAR|grep -n "  frequency dependent "| cut -d ':' -f 1)
+echo $x >result
+a=$(cat result| cut -d ' ' -f 1)
+#echo $a
+b=$(cat result| cut -d ' ' -f 2)
+#echo $b
+rm result
+L_im1=$(($a+4));
+L_im2=$(($b-2));
+cat ./OUTCAR|sed -n "${L_im1},${L_im2}p" > im.txt
+
+d=$(($b-$a));
+L_re1=$(($b+4));
+L_re2=$(($L_re1+$d-5));
+cat ./OUTCAR|sed -n "${L_re1},${L_re2}p" > re.txt
+
+L_im=$(wc -l im.txt |cut -d ' ' -f 1)
+#echo $L_im
+L_re=$(wc -l re.txt |cut -d ' ' -f 1)
+#echo $L_re
+
+##################plasma frequency##########################
+y=$(cat OUTCAR|grep -n "plasma frequency squared (from intraband transitions)"| cut -d ':' -f 1)
+echo $y >result
+L_pl_f=$(cat result| cut -d ' ' -f 1)
+#echo $L_pl_f
+rm result
+
+L_pl_fx=$(($L_pl_f+2))
+L_pl_fy=$(($L_pl_f+3))
+L_pl_fz=$(($L_pl_f+4))
+#echo $L_pl_fx
+#echo $L_pl_fy
+#echo $L_pl_fz
+####X####
+nl ./OUTCAR|sed -n "${L_pl_fx},${L_pl_fx}p" > pl_f_xx
+pl_fxxx=$(cat pl_f_xx| awk '{print $2}')
+#pl_fxxx=$(cat pl_f_xx| cut -c 14-20)
+rm pl_f_xx
+####Y####
+nl ./OUTCAR|sed -n "${L_pl_fy},${L_pl_fy}p" > pl_f_yy
+pl_fyyy=$(cat pl_f_yy| awk '{print $3}')
+#pl_fyyy=$(cat pl_f_yy| cut -c 26-32)
+rm pl_f_yy
+####Z####
+nl ./OUTCAR|sed -n "${L_pl_fz},${L_pl_fz}p" > pl_f_zz
+#pl_fzzz=$(cat pl_f_zz| cut -c 38-44)
+pl_fzzz=$(cat pl_f_zz| awk '{print $4}')
+rm pl_f_zz
+####
+pl_fx=$(bc -l <<<"$pl_fxxx")
+pl_fy=$(bc -l <<<"$pl_fyyy")
+pl_fz=$(bc -l <<<"$pl_fzzz")
+
+echo "plasma freq. of x = $pl_fx"
+echo "plasma freq. of y = $pl_fy"
+echo "plasma freq. of z = $pl_fz"
+echo "===="
+
+echo $pl_fx" "$pl_fy" "$pl_fz >> plasma_fre.txt
+
+
+##################inter & intra##########################
+#echo "------wavelength------ImX------ImY------ImZ " >> result_Im_nm.txt
+cat im.txt|awk '{print (1240/$1)"     "(('$life_time_coe'*'$pl_fx')/($1*$1*$1+'$life_time_coe'*'$life_time_coe'*$1)+$2)"     "(('$life_time_coe'*'$pl_fy')/($1*$1*$1+'$life_time_coe'*'$life_time_coe'*$1)+$3)"     "(('$life_time_coe'*'$pl_fz')/($1*$1*$1+'$life_time_coe'*'$life_time_coe'*$1)+$4)}' >>result_Im_nm.txt;
+
+#echo "------wavelength------ReX------ReY------ReZ " >> result_Re_nm.txt
+cat re.txt|awk '{print (1240/$1)"     "(1-('$pl_fx'/($1*$1+'$life_time_coe'*'$life_time_coe'))+$2)"     "(1-('$pl_fy'/($1*$1+'$life_time_coe'*'$life_time_coe'))+$3)"     "(1-('$pl_fz'/($1*$1+'$life_time_coe'*'$life_time_coe'))+$4)}' >>result_Re_nm.txt;
+
+cat im.txt|awk '{print ($1)"     "(('$life_time_coe'*'$pl_fx')/($1*$1*$1+'$life_time_coe'*'$life_time_coe'*$1)+$2)"     "(('$life_time_coe'*'$pl_fy')/($1*$1*$1+'$life_time_coe'*'$life_time_coe'*$1)+$3)"     "(('$life_time_coe'*'$pl_fz')/($1*$1*$1+'$life_time_coe'*'$life_time_coe'*$1)+$4)}' >>result_Im_energy.txt;
+cat re.txt|awk '{print ($1)"     "(1-('$pl_fx'/($1*$1+'$life_time_coe'*'$life_time_coe'))+$2)"     "(1-('$pl_fy'/($1*$1+'$life_time_coe'*'$life_time_coe'))+$3)"     "(1-('$pl_fz'/($1*$1+'$life_time_coe'*'$life_time_coe'))+$4)}' >>result_Re_energy.txt;
+
+##inter intra
+cat im.txt|awk '{print ($1)"     "('$life_time_coe'*'$pl_fx')/($1*$1*$1+'$life_time_coe'*'$life_time_coe'*$1)"     "('$life_time_coe'*'$pl_fy')/($1*$1*$1+'$life_time_coe'*'$life_time_coe'*$1)"     "('$life_time_coe'*'$pl_fz')/($1*$1*$1+'$life_time_coe'*'$life_time_coe'*$1)}' >>intraband_energy_im.txt;
+cat im.txt|awk '{print (1240/$1)"     "('$life_time_coe'*'$pl_fx')/($1*$1*$1+'$life_time_coe'*'$life_time_coe'*$1)"     "('$life_time_coe'*'$pl_fy')/($1*$1*$1+'$life_time_coe'*'$life_time_coe'*$1)"     "('$life_time_coe'*'$pl_fz')/($1*$1*$1+'$life_time_coe'*'$life_time_coe'*$1)}' >>intraband_nm_im.txt;
+cat im.txt|awk '{print ($1)"     "($2)"     "($3)"     "($4)}' >>interband_energy_im.txt;
+cat im.txt|awk '{print (1240/$1)"     "($2)"     "($3)"     "($4)}' >>interband_nm_im.txt;
+
+cat re.txt|awk '{print ($1)"     "(1-('$pl_fx'/($1*$1+'$life_time_coe'*'$life_time_coe')))"     "(1-('$pl_fy'/($1*$1+'$life_time_coe'*'$life_time_coe')))"     "(1-('$pl_fz'/($1*$1+'$life_time_coe'*'$life_time_coe')))}' >>intraband_energy_re.txt;
+cat re.txt|awk '{print (1240/$1)"     "(1-('$pl_fx'/($1*$1+'$life_time_coe'*'$life_time_coe')))"     "(1-('$pl_fy'/($1*$1+'$life_time_coe'*'$life_time_coe')))"     "(1-('$pl_fz'/($1*$1+'$life_time_coe'*'$life_time_coe')))}' >>intraband_nm_re.txt;
+cat re.txt|awk '{print ($1)"     "($2)"     "($3)"     "($4)}' >>interband_energy_re.txt;
+cat re.txt|awk '{print (1240/$1)"     "($2)"     "($3)"     "($4)}' >>interband_nm_re.txt;
+
+#echo "------wavelength------ReX------ImX------ReY------ImY------ReZ------ImZ " >> final_nm.txt
+join -o 1.1 1.2 2.2 1.3 2.3 1.4 2.4 result_Re_nm.txt result_Im_nm.txt >> final_nm.txt
+
+#echo "------wavelength------ReX------ReY------ReZ------ImX------ImY------ImZ " >> final_energy.txt
+join -o 1.1 1.2 2.2 1.3 2.3 1.4 2.4 result_Re_energy.txt result_Im_energy.txt >> final_energy.txt
+#rm result_Re_energy.txt
+#for ((i=1;i <= $L_im;i=i+1))
+#do	
+#done
+
+##################FDTD data##########################
+end=$(wc -l final_nm.txt |cut -d ' ' -f 1)
+for ((i=1;i <= $end;i=i+1))
+do	
+	x=$(cat final_nm.txt |awk '{print $1}' |sed -n "${i}p")
+#	echo $x
+	if [ $(echo "$x < 4000" | bc) -eq 1 ]; then
+		range_hi=$((i-1));
+		#echo "yo";
+		break;
+	fi
+done
+
+for ((j=1;j <= $end;j=j+1))
+do	
+	y=$(cat final_nm.txt |awk '{print $1}' |sed -n "${j}p")
+#	echo $x
+	if [ $(echo "$y < 200" | bc) -eq 1 ]; then
+		range_lo=$j;
+#		#echo "yo";
+		break;
+	fi
+done
+
+#echo $range_hi
+#echo $range_lo
+
+cat ./final_nm.txt|sed -n "${range_hi},${range_lo}p" > FDTD.txt
+
+#folder=$(basename $(dirname $PWD))
+
+#rm -rf $folder
+mkdir DF
+mv FDTD.txt im.txt re.txt final_energy.txt final_nm.txt result_Im_nm.txt result_Re_nm.txt result_Re_energy.txt result_Im_energy.txt intraband*.txt interband*.txt plasma_fre.txt DF
+
+

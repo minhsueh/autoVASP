@@ -1,0 +1,46 @@
+
+#############Q=(-1)*ep1/ep2
+cat final_energy.txt|awk '{print ($1)"     "((-1)*$2/$3)"     "((-1)*$4/$5)"     "((-1)*$6/$7)}' >>qf_lsp_energy.txt;
+cat final_energy.txt|awk '{print (1240/$1)"     "((-1)*$2/$3)"     "((-1)*$4/$5)"     "((-1)*$6/$7)}' >>qf_lsp_nm.txt;
+mkdir QF
+mv qf_lsp_energy.txt QF
+mv qf_lsp_nm.txt QF
+#############Q=ep1*ep1/ep2
+cat final_energy.txt|awk '{print ($1)"     "($2*$2/$3/100)"     "($4*$4/$5)"     "($6*$6/$7)}' >>qf_ssp_energy.txt;
+cat final_energy.txt|awk '{print (1240/$1)"     "($2*$2/$3)"     "($4*$4/$5)"     "($6*$6/$7)}' >>qf_ssp_nm.txt;
+mv qf_ssp_energy.txt QF
+mv qf_ssp_nm.txt QF
+
+
+# #######Q=w/ep2* d ep1/d w
+
+# w_1=$(awk 'NR==1' final_energy.txt|  cut -d ' ' -f 1)
+# w_2=$(awk 'NR==2' final_energy.txt|  cut -d ' ' -f 1)
+# w_dif=$(echo "scale=5; $w_2 - $w_1" | bc)
+
+# row=$(wc -l final_energy.txt| cut -d ' ' -f 1)
+# row_cal=$(($row-1))
+
+# cp final_energy.txt low.txt
+# cp final_energy.txt high.txt
+
+
+
+# sed -i "${row}a0.000 0.000 0.000 0.000 0.000 0.000 0.000" high.txt
+# sed -i '1d' high.txt 
+# sed -i "${row}d" low.txt 
+# sed -i '1i 0.000 0.000 0.000 0.000 0.000 0.000 0.000' low.txt  
+
+# paste final_energy.txt low.txt high.txt final_energy.txt | awk '{print $1,$9,$16,$24}' >> x_qf_pre.txt
+# paste final_energy.txt low.txt high.txt final_energy.txt | awk '{print $1,$5,$8,$12}' >> x_qf_pre.txt
+# sed -i '1d' x_qf_pre.txt
+# cat x_qf_pre.txt |awk '{print ($1)"     "($1/$4*($3-$2)/2/$w_dif*100)}' >> qf_energy.txt
+# awk 'NR==FNR{a[$1]=$1; next}{print $1" "a[$1]}' high.txt low.txt >> x_qf.txt
+
+
+# rm low.txt
+# rm high.txt
+# rm x_qf_pre.txt
+
+# mkdir 3
+# mv qf_energy.txt 3
