@@ -18,4 +18,4 @@ Also, these script meets PBS workload system requirements. (usually, one job is 
 Usage: <br/>
 The route of post-analysis script, POTCAR, and work record should be modified by user.
 
-https://github.com/minhsueh/autoVASP/blob/main/results/Picture1.png
+![alt text](https://github.com/minhsueh/autoVASP/blob/main/results/Picture1.png)
