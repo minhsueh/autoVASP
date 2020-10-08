@@ -1,0 +1,124 @@
+type=3
+user=`whoami`
+alias gnuplots='/home/u7/$user/gnuplot/4.6/gnuplot'
+
+
+#########################################
+#arg0=$(cat /home/$user/script/gunplot/gnu.input_band_spd)
+cp /home/$user/script/gunplot/gnu.input_band_spd .
+############add xtics and symmetric point name 
+
+upper_bound=5
+lower_bound=-5
+########add kp_sym_point and symmetric point in arg0
+cat kp_sym_point|while read row_
+do
+kp_sym=$(echo $row_|awk '{print $1}')
+kp_sym_name=$(echo $row_|awk '{print $2}')
+echo "set arrow from ${kp_sym},${lower_bound} to ${kp_sym},${upper_bound} nohead lc rgb \"black\"" >>gnu.input_band_spd
+echo -n "\"$kp_sym_name\" $kp_sym," >>kp_sym_name_file
+#echo $arg_kp
+#arg0="$arg0\n$arg_kp"
+#echo $arg0
+done
+kp_sym_name=$(cat kp_sym_name_file| sed 's/.$//')
+set_x_="set xtics ($kp_sym_name)"
+echo $set_x_ >>gnu.input_band_spd
+arg0=$(cat gnu.input_band_spd)
+########
+echo "spd plot(1) or atom sep(2)"; read check_band_type
+if [[ $check_band_type -eq 1 ]];then
+echo "input filename :";read filename
+#filename="nor*"
+find ./ -name "$filename" |sort -n > temp_root_log
+#$(basename $(dirname $(find ./ -name FDTD.txt))) > folder
+
+
+s=$(cat ./temp_root_log |wc -l)  
+n=1
+
+
+cat ./temp_root_log | while read i
+do
+	#folder=$(basename $(dirname $i))
+	#echo $i
+	namee=$(echo "${i//.\/}" )
+	#echo $namee
+	name=$(echo "${namee//.txt}" )
+	#echo $name
+	if ((n < s)) ;then
+		arg1="'$i' using 1:2:3 with points pointtype 4 lc rgb \"red\" ps var notitle,\\"
+		arg2="'$i' using 1:2:4 with points pointtype 6 lc rgb \"green\" ps var notitle,\\"
+		arg3="'$i' using 1:2:5 with points pointtype 8 lc rgb \"blue\" ps var notitle,\\"
+	else
+		arg1="'$i' using 1:2:3 with points pointtype 4 lc rgb \"red\" ps var title 's',\\"
+		arg2="'$i' using 1:2:4 with points pointtype 6 lc rgb \"green\" ps var title 'p',\\"
+		arg3="'$i' using 1:2:5 with points pointtype 8 lc rgb \"blue\" ps var title 'd'"
+	fi 
+	printf "%s\n" "$arg1" "$arg2" "$arg3"
+		
+	n=$((++n))
+done > temp_plot_log
+
+arg=$(cat temp_plot_log) 
+arg1="plot $arg" 
+
+printf "%b" "$arg0\n$arg1" > gnu.script
+
+#printf "%b" "$row0\n$row1\n$row2\n$row3\n$row4\n$row5\n$row6\n$row7\n$row8\n$row9\n" > gnu.script
+
+gnuplots gnu.script
+
+#rm -r temp_root_log temp_plot_log
+
+mkdir plot_spd
+mv gnu.script plot.jpg temp_plot_log temp_root_log gnu.input_band_spd kp_sym_name_file plot_spd
+#########################################
+#########################################
+#########################################
+#########################################
+#echo "input filename :";read filename
+filename="normalize_atom_band_*"
+find ./ -name "$filename" |sort -n > temp_root_log
+#$(basename $(dirname $(find ./ -name FDTD.txt))) > folder
+first_atom=$(cat atom_name| awk '{print $1}')
+second_atom=$(cat atom_name| awk '{print $2}')
+
+s=$(cat ./temp_root_log |wc -l)  
+n=1
+
+
+cat ./temp_root_log | while read i
+do
+	#folder=$(basename $(dirname $i))
+	#echo $i
+	namee=$(echo "${i//.\/}" )
+	#echo $namee
+	name=$(echo "${namee//.txt}" )
+	#echo $name
+	if ((n < s)) ;then
+		arg1="'$i' using 1:2:3 with points pointtype 4 lc rgb \"red\" ps var notitle,\\"
+		arg2="'$i' using 1:2:4 with points pointtype 6 lc rgb \"blue\" ps var notitle,\\"
+	else
+		arg1="'$i' using 1:2:3 with points pointtype 4 lc rgb \"red\" ps var title '$first_atom',\\"
+		arg2="'$i' using 1:2:4 with points pointtype 6 lc rgb \"blue\" ps var title '$second_atom',"
+	fi 
+	printf "%s\n" "$arg1" "$arg2"
+		
+	n=$((++n))
+done > temp_plot_log
+
+arg=$(cat temp_plot_log) 
+arg1="plot $arg" 
+
+printf "%b" "$arg0\n$arg1" > gnu.script
+
+#printf "%b" "$row0\n$row1\n$row2\n$row3\n$row4\n$row5\n$row6\n$row7\n$row8\n$row9\n" > gnu.script
+
+gnuplots gnu.script
+
+#rm -r temp_root_log temp_plot_log
+
+mkdir plot_atom
+mv gnu.script plot.jpg temp_plot_log temp_root_log gnu.input_band_spd kp_sym_name_file plot_atom
+	

@@ -1,0 +1,15 @@
+#! /usr/bin/gnuplot
+set terminal png truecolor giant size 800,600
+set output 'plot.jpg'
+set grid
+set xlabel 'DOS'
+set ylabel 'Energy (eV)'
+set title 
+set format x ""
+set key outside
+set size ratio 1
+#set xrange [-1.2 : 1.2]
+set yrange [-10 : 5]
+#set key 0.2, 100
+#set label "Yield point" at 0.1 20
+

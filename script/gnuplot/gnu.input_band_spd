@@ -1,0 +1,15 @@
+#! /usr/bin/gnuplot
+set terminal png truecolor size 800,600
+set output 'plot.jpg'
+set grid
+unset xtics
+#set xlabel 'Energy (eV)'
+set ylabel 'Energy (eV)' font ',18'
+#set title  'D-T'
+set key width 3 samplen 2 spacing 2 font ',18' outside
+set size ratio 1
+set ytics -5,5,5 font ',18'
+set xrange [0:]
+set yrange [-5 : 5]
+#set key 0.2, 100
+#set label "Yield point" at 0.1 20
