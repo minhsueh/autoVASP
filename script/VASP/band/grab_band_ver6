@@ -1,0 +1,273 @@
+########v6: spd_sep_atom normalization
+
+
+point_per_path=$(cat KPOINTS |sed -n "2,2p"|awk '{print $1}')
+#echo $point_per_path
+point_per_path_p=$(($point_per_path+1))
+KPOINTS_row=$(cat KPOINTS| wc -l)
+#echo $KPOINTS_row
+path_num=$((($KPOINTS_row-3)/3))
+#echo $path_num
+#check=$(echo "scale=2; $KPOINTS_row%3" | bc)
+check=$(($KPOINTS_row%3))
+fermi_level=$(cat ../opt/OUTCAR|grep E-fermi| awk '{print $3}')
+if [ -z "$fermi_level" ];then
+	echo "No fermi level!!!Cheack the opt/OUTCAR!"
+	break
+fi
+#echo $fermi_level
+#echo $KPOINTS_row
+#echo $path_num
+#echo $check
+if [[ $check -ne 0 ]]; then
+    echo "Please check KPOINTS! (ADD new line below)"
+	exit
+fi
+kp_num=$(cat PROCAR |sed -n "2,2p"|awk '{print $4}')
+#echo $kp_num
+band_num=$(cat PROCAR |sed -n "2,2p"|awk '{print $8}')
+#echo $band_num
+ion_num=$(cat PROCAR |sed -n "2,2p"|awk '{print $12}')
+#echo $ion_num
+#echo $ion_num
+	#echo $x_position
+#echo $line_need
+for j in $(seq 1 $band_num)
+do
+	#echo $j
+	#x_position=$(echo "scale=5; (${j}-1)*${distance_segment}" | bc) 
+	if [[ $ion_num -eq 1 ]]; then
+		if [[ $j -lt 10 ]]; then
+			line_need=$((2+$ion_num))
+			cat PROCAR|grep -A${line_need} "band   ${j}" >bandvalue_${j}
+		else
+			cat PROCAR|grep -A${line_need} "band  ${j}" >bandvalue_${j}
+		fi
+	else
+		if	
+		 [[ $j -lt 10 ]]; then
+			line_need=$((3+$ion_num))
+			cat PROCAR|grep -A${line_need} "band   ${j}" >bandvalue_${j}
+			else
+				cat PROCAR|grep -A${line_need} "band  ${j}" >bandvalue_${j}
+			fi
+		fi
+done 
+all_distance=0
+all_sym_point=0
+for i in $(seq 1 $path_num)
+do
+	echo $i
+	row_position_one=$((2+$i*3))
+	row_position_two=$((${row_position_one}+1))
+	echo $row_position_one
+	echo $row_position_two
+	#x1=$(cat KPOINTS |sed -n "${row_position_one},${row_position_one}p"|awk '{print $1}')
+	#y1=$(cat KPOINTS |sed -n "${row_position_one},${row_position_one}p"|awk '{print $2}')
+	#z1=$(cat KPOINTS |sed -n "${row_position_one},${row_position_one}p"|awk '{print $3}')
+	#x2=$(cat KPOINTS |sed -n "${row_position_two},${row_position_two}p"|awk '{print $1}')
+	#y2=$(cat KPOINTS |sed -n "${row_position_two},${row_position_two}p"|awk '{print $2}')
+	#z2=$(cat KPOINTS |sed -n "${row_position_two},${row_position_two}p"|awk '{print $3}')
+	if [[ $i -eq 1 ]];then 
+		symmetric_point_name_1=$(cat KPOINTS |sed -n "${row_position_one},${row_position_one}p"|awk -F '!' '{print $2}')
+		symmetric_point_name_2=$(cat KPOINTS |sed -n "${row_position_two},${row_position_two}p"|awk -F '!' '{print $2}')
+	else
+		symmetric_point_name_1=$(cat KPOINTS |sed -n "${row_position_one},${row_position_one}p"|awk -F '!' '{print $2}')
+		symmetric_point_name_2=$(cat KPOINTS |sed -n "${row_position_two},${row_position_two}p"|awk -F '!' '{print $2}')
+	fi
+	x1=$(cat /home/u7/j11cmh00/script/VASP/band/cubic |grep ${symmetric_point_name_1}|awk -F "," '{print $2}')
+	y1=$(cat /home/u7/j11cmh00/script/VASP/band/cubic |grep ${symmetric_point_name_1}|awk -F "," '{print $3}')
+	z1=$(cat /home/u7/j11cmh00/script/VASP/band/cubic |grep ${symmetric_point_name_1}|awk -F "," '{print $4}')
+	x2=$(cat /home/u7/j11cmh00/script/VASP/band/cubic |grep ${symmetric_point_name_2}|awk -F "," '{print $2}')
+	y2=$(cat /home/u7/j11cmh00/script/VASP/band/cubic |grep ${symmetric_point_name_2}|awk -F "," '{print $3}')
+	z2=$(cat /home/u7/j11cmh00/script/VASP/band/cubic |grep ${symmetric_point_name_2}|awk -F "," '{print $4}')
+	distance=$(echo "scale=10; sqrt((${x2}-${x1})*(${x2}-${x1})+(${y2}-${y1})*(${y2}-${y1})+(${z2}-${z1})*(${z2}-${z1}))" | bc)
+	echo x1=$x1 ,y1=$y1, z1=$z1, x2=$x2 ,y2=$y2, z2=$z2
+	#all_sym_point=$(echo "scale=5; (${all_sym_point}+${distance})" | bc)
+	#echo $all_sym_point >>kp_sym_point
+	distance_segment=$(echo "scale=10; ${distance}/${point_per_path}" | bc)
+	echo $distance
+	echo $distance_segment
+	for j in $(seq 1 $band_num)
+	do
+		for k in $(seq 1 $point_per_path)
+		do
+			x_position=$(echo "scale=10; (${k-1})*${distance_segment}" | bc)
+			x_position_total=$(echo "scale=10; (${x_position}+${all_distance})" | bc)
+			if [[ $k -eq $point_per_path ]] && [[ $j -eq 1 ]]; then
+				if [[ $i -eq 1 ]];then 
+					echo "0.0 ${symmetric_point_name_1}">>kp_sym_point
+					echo "${x_position_total} ${symmetric_point_name_2}">>kp_sym_point
+					echo $x_position_total
+				else
+					echo "${x_position_total} ${symmetric_point_name_2}">>kp_sym_point
+					echo $x_position_total
+				fi
+			fi
+			#echo $x_position
+			if [[ $ion_num -eq 1 ]]; then
+				energy_row=$((5*(($i-1)*$point_per_path+$k-1)+1))
+				spd_row=$((5*(($i-1)*$point_per_path+$k-1)+4))
+				band=$(cat bandvalue_${j} |sed -n "${energy_row},${energy_row}p"|awk '{print $5}')
+				s_contribution=$(cat bandvalue_${j} |sed -n "${spd_row},${spd_row}p"|awk '{print $2}')
+				p_contribution=$(cat bandvalue_${j} |sed -n "${spd_row},${spd_row}p"|awk '{print $3}')
+				d_contribution=$(cat bandvalue_${j} |sed -n "${spd_row},${spd_row}p"|awk '{print $4}')
+				total_contribution=$(cat bandvalue_${j} |sed -n "${spd_row},${spd_row}p"|awk '{print $5}')
+				energy_modify=$(echo "scale=5; ($band-($fermi_level))" | bc)
+				echo "$x_position_total     $energy_modify     $s_contribution     $p_contribution     $d_contribution     $total_contribution" >>band_${j}
+				num_total=1
+				for p in $(seq 1 $num_total)
+					do
+						first_atom_total=0
+						first_atom_row=$(((5)*(($i-1)*$point_per_path+$k-1)+3+$p))
+						first_atom_sep=$(cat bandvalue_${j} |sed -n "${first_atom_row},${first_atom_row}p"|awk '{print $5}')
+						first_atom_total=$(echo "scale=5; ($first_atom_total+$first_atom_sep)" | bc)
+						echo "$x_position_total     $energy_modify     $first_atom_total" >>band_atom_${j}
+					
+					done
+			else
+				########total
+				energy_row=$(((5+$ion_num)*(($i-1)*$point_per_path+$k-1)+1))
+				spd_row=$(((5+$ion_num)*(($i-1)*$point_per_path+$k-1)+$ion_num+4))
+				band=$(cat bandvalue_${j} |sed -n "${energy_row},${energy_row}p"|awk '{print $5}')
+				s_contribution=$(cat bandvalue_${j} |sed -n "${spd_row},${spd_row}p"|awk '{print $2}')
+				p_contribution=$(cat bandvalue_${j} |sed -n "${spd_row},${spd_row}p"|awk '{print $3}')
+				d_contribution=$(cat bandvalue_${j} |sed -n "${spd_row},${spd_row}p"|awk '{print $4}')
+				total_contribution=$(cat bandvalue_${j} |sed -n "${spd_row},${spd_row}p"|awk '{print $5}')
+				energy_modify=$(echo "scale=5; ($band-($fermi_level))" | bc)
+
+				echo "$x_position_total     $energy_modify     $s_contribution     $p_contribution     $d_contribution     $total_contribution" >>band_${j}
+				#########seperate by atom
+				num_first_atom=$(cat CONTCAR| sed -n '7p'| cut -d ' '  -f 6)
+				num_second_atom=$(cat CONTCAR| sed -n '7p'| cut -d ' '  -f 11)
+				first_atom=$(cat CONTCAR| sed -n '6p'| cut -d ' '  -f 4)
+				second_atom=$(cat CONTCAR| sed -n '6p'| cut -d ' '  -f 7)
+				echo "$first_atom $second_atom" >atom_name
+				#echo $num_second_atom
+				if [ -z $num_second_atom ]; then
+				############useless
+					echo "empty~"
+					num_total=$num_first_atom
+					for p in $(seq 1 $num_total)
+					do
+						first_atom_total=0
+						first_atom_row=$(((5+$ion_num)*(($i-1)*$point_per_path+$k-1)+3+$p))
+						first_atom_sep=$(cat bandvalue_${j} |sed -n "${first_atom_row},${first_atom_row}p"|awk '{print $5}')
+						first_atom_total=$(echo "scale=5; ($first_atom_total+$first_atom_sep)" | bc)
+						echo "$x_position_total     $energy_modify     $first_atom_total" >>band_atom_${j}
+					
+					done
+				else
+					num_total=$(($num_first_atom+$num_second_atom))
+					#echo "$first_atom = $num_first_atom; $second_atom = $num_second_atom"
+					for p in $(seq 1 $num_total)
+					do
+						first_atom_total=0
+						second_atom_total=0
+						if [[ $p -lt $num_first_atom ]];then
+							first_atom_row=$(((5+$ion_num)*(($i-1)*$point_per_path+$k-1)+3+$p))
+							first_atom_sep=$(cat bandvalue_${j} |sed -n "${first_atom_row},${first_atom_row}p"|awk '{print $5}')
+							first_atom_total=$(echo "scale=5; ($first_atom_total+$first_atom_sep)" | bc)
+						else
+							second_atom_row=$(((5+$ion_num)*(($i-1)*$point_per_path+$k-1)+3+$p))
+							second_atom_sep=$(cat bandvalue_${j} |sed -n "${second_atom_row},${second_atom_row}p"|awk '{print $5}')
+							second_atom_total=$(echo "scale=5; ($second_atom_total+$second_atom_sep)" | bc)
+						fi
+						echo "$x_position_total     $energy_modify     $first_atom_total     $second_atom_total" >>band_atom_${j}
+					
+					done
+					
+				fi
+				#################spd_sep_atom
+				first_atom_spd_row=$(((5+$ion_num)*(($i-1)*$point_per_path+$k-1)+4))
+				second_atom_spd_row=$(((5+$ion_num)*(($i-1)*$point_per_path+$k-1)+4+$num_first_atom))
+				#####reset parameters
+				sss=0
+				ppp=0
+				ddd=0
+				first_atom_s=0
+				first_atom_p=0
+				first_atom_d=0
+				second_atom_s=0
+				second_atom_p=0
+				second_atom_d=0
+				#####
+				#for m in $(seq $first_atom_spd_row $((second_atom_spd_row-1)))
+				for m in $(seq $first_atom_spd_row $(($first_atom_spd_row+$ion_num-1)))
+				do
+					count=$(($m-$first_atom_spd_row+1))
+					##################only for two compositions alloys
+					if [ $count -le $num_first_atom ]; then
+						first_sss=$(cat bandvalue_${j} |sed -n "${m},${m}p"|awk '{print $2}')
+						first_ppp=$(cat bandvalue_${j} |sed -n "${m},${m}p"|awk '{print $3}')
+						first_ddd=$(cat bandvalue_${j} |sed -n "${m},${m}p"|awk '{print $4}')
+						first_atom_s=$(echo "scale=5; ($first_atom_s+$first_sss)" | bc)
+						first_atom_p=$(echo "scale=5; ($first_atom_p+$first_ppp)" | bc)
+						first_atom_d=$(echo "scale=5; ($first_atom_d+$first_ddd)" | bc)
+					else
+						second_sss=$(cat bandvalue_${j} |sed -n "${m},${m}p"|awk '{print $2}')
+						second_ppp=$(cat bandvalue_${j} |sed -n "${m},${m}p"|awk '{print $3}')
+						second_ddd=$(cat bandvalue_${j} |sed -n "${m},${m}p"|awk '{print $4}')
+						second_atom_s=$(echo "scale=5; ($second_atom_s+$second_sss)" | bc)
+						second_atom_p=$(echo "scale=5; ($second_atom_p+$second_ppp)" | bc)
+						second_atom_d=$(echo "scale=5; ($second_atom_d+$second_ddd)" | bc)
+					fi
+					echo "$x_position_total     $energy_modify     $first_atom_s     $first_atom_p     $first_atom_d     $total_contribution" >>first_atom_spd_band_${j}
+					echo "$x_position_total     $energy_modify     $second_atom_s     $second_atom_p     $second_atom_d     $total_contribution" >>second_atom_spd_band_${j}
+				done
+				
+				
+				
+				
+			fi
+			#echo "$x_position_total     $energy_modify" >>total_band
+		done
+	done 
+	all_distance=$x_position_total
+done
+###########normalize point size
+max_=0
+point_size=4
+for p in $(seq 1 $band_num)
+do
+	local_max=$(echo $(awk 'BEGIN {max = 0} {if ($1+0 > max+0) max=$1} END {print max}' band_${p}))
+	r=$(awk 'BEGIN{print ('$local_max'>'$max_')?1:0}')
+	if [[ $r -eq 1 ]];then 
+		max_=$local_max
+	fi	
+done
+#######making normalize band file
+#echo $max_
+for m in $(seq 1 $band_num)
+do
+	if [ -z $num_second_atom ]; then
+		cat band_${m}|awk '{print ($1)"     "($2)"     "($3/'$max_'*'$point_size')"     "($4/'$max_'*'$point_size')"     "($5/'$max_'*'$point_size')"     "($6/'$max_'*'$point_size')}' >>normalize_band_${m}
+		cat band_atom_${m}|awk '{print ($1)"     "($2)"     "($3/'$max_'*'$point_size')}' >>normalize_atom_band_${m}
+	else
+		cat band_${m}|awk '{print ($1)"     "($2)"     "($3/'$max_'*'$point_size')"     "($4/'$max_'*'$point_size')"     "($5/'$max_'*'$point_size')"     "($6/'$max_'*'$point_size')}' >>normalize_band_${m}
+		cat band_atom_${m}|awk '{print ($1)"     "($2)"     "($3/'$max_'*'$point_size')"     "($4/'$max_'*'$point_size')}' >>normalize_atom_band_${m}	
+	fi	
+	cat first_atom_spd_band_${m}|awk '{print ($1)"     "($2)"     "($3/'$max_'*'$point_size')"     "($4/'$max_'*'$point_size')"     "($5/'$max_'*'$point_size')"     "($6/'$max_'*'$point_size')}' >>nor_first_atom_spd_band_${m}
+	cat second_atom_spd_band_${m}|awk '{print ($1)"     "($2)"     "($3/'$max_'*'$point_size')"     "($4/'$max_'*'$point_size')"     "($5/'$max_'*'$point_size')"     "($6/'$max_'*'$point_size')}' >>nor_second_atom_spd_band_${m}
+	paste first_atom_spd_band_${m} second_atom_spd_band_${m} |awk '{print ($1)"  "($2)"  "($3+$9)"  "($4+$10)"  "($5+$11)"  "($6+$12) }' >nor_total_sep_spd_band_${m}
+done 
+
+cat band_atom_${m}|awk '{print ($1)"     "($2)"     "($3/'$max_'*'$point_size')}' >>normalize_atom_band_${m}
+
+mkdir band_ver6
+######
+
+rm bandvalue_*
+rm band_*
+#mv bandvalue_* band_ver6
+mv normalize_atom_band_* band_ver6
+
+#mv second_* band_ver6
+rm first_*
+rm second_*
+#mv first_* band_ver6
+#mv total_band band_ver6
+mv nor* band_ver6
+mv atom_name band_ver6
+mv normalize_band_* band_ver6
+mv kp_sym_point band_ver6
